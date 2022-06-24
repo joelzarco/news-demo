@@ -8,11 +8,16 @@
 import Foundation
 
 final class APICaller{
+    
     static let shared = APICaller()
     let apiKey : String = ""
+    let searchWord : String = ""
+    
     lazy var urlString : String = "https://newsapi.org/v2/top-headlines?country=us&apiKey=" + apiKey
+    lazy var searchUrl : String = "https://newsapi.org/v2/top-headlines?country=us&apiKey=" + apiKey + "&q="
     
     lazy var topHeadlinesURL = URL(string : urlString)
+    
     
     private init(){}
     
@@ -36,11 +41,41 @@ final class APICaller{
                 catch{
                     completion(.failure(error))
                 }
-                
             }
         }
         task.resume()
-    }
+    } //getTopStories
+    
+    public func search(with query: String, completion : @escaping(Result<[Article], Error>) -> Void){
+        guard !query.trimmingCharacters(in: .whitespaces).isEmpty else{
+            return
+        }
+        let urlAsString = searchUrl + query
+        let searchURL = URL(string: urlAsString)
+        guard let url = searchURL else{
+            return
+        }
+        let task = URLSession.shared.dataTask(with: url) { data, response, error in
+            if let error = error {
+                completion(.failure(error))
+                print("Something went really wrong :(")
+            }
+            else if let data = data{
+                // decode json
+                do{
+                    let result = try JSONDecoder().decode(APIResponse.self, from: data)
+                    print("Articles: \(result.articles.count)")
+                    completion(.success(result.articles))
+                }
+                catch{
+                    completion(.failure(error))
+                }
+            }
+        }
+        task.resume()
+    } //search
+    
+    
 }
 
 // MARK: models

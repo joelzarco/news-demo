@@ -3,7 +3,7 @@
 //  news-demo
 //
 //  Created by Johel Zarco on 15/06/22.
-//
+// Based on Tutorial by @iOSAcademy
 
 import UIKit
 

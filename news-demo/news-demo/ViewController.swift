@@ -8,7 +8,7 @@
 import UIKit
 import SafariServices
 
-class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
+class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, UISearchBarDelegate {
     
     
     private let tableView : UITableView = {
@@ -18,16 +18,31 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
         return table
     }()
     
+    private let searchVC = UISearchController(searchResultsController: nil)
+    
     private var viewModels = [NewsTableViewCellViewModel]()
     private var articles = [Article]()
 
     override func viewDidLoad() {
+        
         super.viewDidLoad()
         view.addSubview(tableView)
         tableView.delegate = self
         tableView.dataSource = self
+        view.backgroundColor = .systemBackground
+        fetchTopStories()
+        createSearchBar()
         
-        // test api call, [weak self]
+    }//vDidLoad
+    
+    func createSearchBar(){
+        navigationItem.searchController = searchVC
+        searchVC.searchBar.delegate = self
+        
+    }
+    
+    private func fetchTopStories(){
+        
         APICaller.shared.getTopStories { [weak self] result in
             switch result{
             case .success(let articles):
@@ -37,13 +52,14 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
                 })
                 DispatchQueue.main.async {
                     self?.tableView.reloadData()
+                    self?.searchVC.dismiss(animated: true)
                 }
-                //print(response.count
+                //print(response.count)
             case .failure(let error):
                 print(error)
             }
         }
-    }//vDidLoad
+    }// fetch
     
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
@@ -79,6 +95,37 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
         return 150
     }
+    
+    // MARK: Search
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        guard let text = searchBar.text, !text.isEmpty else{
+            return
+        }
+        print(text)
+        // almost the same code, need refactoring!!!
+        APICaller.shared.search(with: text) { [weak self] result in
+            switch result{
+            case .success(let articles):
+                self?.articles = articles
+                self?.viewModels = articles.compactMap({
+                    NewsTableViewCellViewModel(title: $0.title, subtitle: $0.description ?? "No description", imageURL: URL(string: $0.urlToImage ?? ""))
+                })
+                DispatchQueue.main.async {
+                    self?.tableView.reloadData()
+                }
+                //print(response.count)
+            case .failure(let error):
+                print(error)
+            }
+        }
+        
+    }// search
+    
+    func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
+        // in order to reload table view after search is canceled
+        self.fetchTopStories()
+    }
+    
 
 }
 
